@@ -1,13 +1,7 @@
-"""Service registry — single source of truth for what runs on the VPS.
+"""Service registry - single source of truth for what runs on the VPS.
 
-Grouped by domain. Each entry has:
-  - name: human label
-  - port: TCP port on host (None for unix/internal)
-  - kind: 'http' | 'systemd' | 'docker' | 'pg' | 'redis'
-  - url: public URL (None for internal)
-  - login: login hints/URL (None for open)
-  - desc: 1-line description
-  - check: how to verify it's alive
+Reflects the FULL VPS state after comprehensive audit (2026-05-19).
+Total: 60+ services across 8 groups.
 """
 
 from __future__ import annotations
@@ -48,7 +42,7 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": "https://multica.83-171-249-32.nip.io/api/c360/health",
                 "unit": "multica-c360.service",
-                "desc": "Customer 360 analytics",
+                "desc": "Customer 360 (1,218 unified customers)",
             },
             {
                 "name": "Inventory API",
@@ -67,8 +61,16 @@ GROUPS: dict[str, dict] = {
                 "desc": "Master dashboard backend",
             },
             {
+                "name": "Dashboard API",
+                "port": 9095,
+                "kind": "systemd",
+                "url": None,
+                "unit": "multica-dashboard-api.service",
+                "desc": "Multica dashboard API",
+            },
+            {
                 "name": "Activity Feed API",
-                "port": None,
+                "port": 9102,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-activity-feed.service",
@@ -76,7 +78,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "Federated Search API",
-                "port": None,
+                "port": 9092,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-federated-search.service",
@@ -84,7 +86,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "RAG Search API",
-                "port": None,
+                "port": 9096,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-rag.service",
@@ -92,7 +94,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "Metrics API",
-                "port": None,
+                "port": 9101,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-metrics-api.service",
@@ -100,7 +102,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "Monitor API",
-                "port": None,
+                "port": 9058,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-monitor.service",
@@ -108,7 +110,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "Smart Workload Router",
-                "port": None,
+                "port": 9101,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-smart-router-webhook.service",
@@ -124,7 +126,7 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "GitHub Webhook",
-                "port": None,
+                "port": 9090,
                 "kind": "systemd",
                 "url": None,
                 "unit": "multica-github-webhook.service",
@@ -154,7 +156,15 @@ GROUPS: dict[str, dict] = {
         "color": "#8b5cf6",
         "services": [
             {
-                "name": "Paperclip Server",
+                "name": "Paperclip AI (native)",
+                "port": 3100,
+                "kind": "systemd",
+                "url": None,
+                "unit": "paperclip.service",
+                "desc": "Multi-company agent orchestration",
+            },
+            {
+                "name": "Paperclip Biz Server",
                 "port": 3200,
                 "kind": "docker",
                 "url": "http://83.171.249.32:3200/",
@@ -162,12 +172,36 @@ GROUPS: dict[str, dict] = {
                 "desc": "Paperclip Business UI + API",
             },
             {
-                "name": "Paperclip DB",
+                "name": "Paperclip Biz DB",
                 "port": 5433,
                 "kind": "docker",
                 "url": None,
                 "container": "paperclip-biz-db-1",
-                "desc": "PostgreSQL for Paperclip",
+                "desc": "PostgreSQL 17 for Paperclip",
+            },
+            {
+                "name": "Strip Proxy",
+                "port": 4000,
+                "kind": "systemd",
+                "url": None,
+                "unit": "strip-proxy.service",
+                "desc": "Paperclip ↔ 9Router bridge",
+            },
+            {
+                "name": "Newtech PG (clone)",
+                "port": 5436,
+                "kind": "docker",
+                "url": None,
+                "container": "newtech_pg",
+                "desc": "PostgreSQL 16 clone",
+            },
+            {
+                "name": "Newtech Redis",
+                "port": 6381,
+                "kind": "docker",
+                "url": None,
+                "container": "newtech_redis",
+                "desc": "Redis 7 for Paperclip stack",
             },
         ],
     },
@@ -177,16 +211,24 @@ GROUPS: dict[str, dict] = {
         "color": "#ec4899",
         "services": [
             {
-                "name": "Hermes Workspace",
-                "port": None,
+                "name": "Hermes Agent (8061)",
+                "port": 8061,
+                "kind": "systemd",
+                "url": None,
+                "unit": "hermes-gateway.service",
+                "desc": "Hermes Agent v0.14.0 messaging gateway",
+            },
+            {
+                "name": "Hermes Workspace (web)",
+                "port": 8051,
                 "kind": "docker",
                 "url": "https://workspace.83-171-249-32.nip.io/",
                 "container": "hermes-workspace-jadeed",
-                "desc": "Web workspace UI",
+                "desc": "Native workspace UI",
             },
             {
                 "name": "Hermes WebUI",
-                "port": None,
+                "port": 3000,
                 "kind": "systemd",
                 "url": "https://hermes.83-171-249-32.nip.io/",
                 "unit": "hermes-webui.service",
@@ -209,14 +251,6 @@ GROUPS: dict[str, dict] = {
                 "desc": "Native dashboard",
             },
             {
-                "name": "Hermes Gateway",
-                "port": None,
-                "kind": "systemd",
-                "url": None,
-                "unit": "hermes-gateway.service",
-                "desc": "Messaging gateway",
-            },
-            {
                 "name": "Hermes CDP Bridge",
                 "port": None,
                 "kind": "systemd",
@@ -226,8 +260,47 @@ GROUPS: dict[str, dict] = {
             },
         ],
     },
+    "openclaw": {
+        "label": "OpenClaw",
+        "icon": "🦞",
+        "color": "#dc2626",
+        "services": [
+            {
+                "name": "OpenClaw Gateway",
+                "port": 3080,
+                "kind": "systemd",
+                "url": None,
+                "unit": "openclaw-gateway.service",
+                "desc": "OpenClaw HTTP gateway (Claude CLI bridge)",
+            },
+            {
+                "name": "OpenClaw Watchdog",
+                "port": None,
+                "kind": "systemd",
+                "url": None,
+                "unit": "openclaw-watchdog.service",
+                "desc": "Keeps OpenClaw gateway alive",
+            },
+            {
+                "name": "OpenClaw Auth",
+                "port": 3082,
+                "kind": "process",
+                "url": None,
+                "process": "openclaw",
+                "desc": "OpenClaw auth endpoint (401 = healthy)",
+            },
+            {
+                "name": "OpenClaw Tools",
+                "port": 8787,
+                "kind": "process",
+                "url": None,
+                "process": "openclaw",
+                "desc": "OpenClaw tools port",
+            },
+        ],
+    },
     "router": {
-        "label": "9Router + LLM",
+        "label": "LLM Router Stack",
         "icon": "🧠",
         "color": "#10b981",
         "services": [
@@ -237,22 +310,30 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": "https://9router.83-171-249-32.nip.io/login",
                 "unit": "9router.service",
-                "desc": "Smart LLM routing (7 combos)",
+                "desc": "Smart LLM routing v0.4.55",
             },
             {
                 "name": "Anthropic Shim",
-                "port": None,
+                "port": 8060,
                 "kind": "systemd",
                 "url": None,
                 "unit": "anthropic-shim.service",
-                "desc": "Claude Max via CLI shim",
+                "desc": "Claude Max CLI shim",
+            },
+            {
+                "name": "OpenAI Shim",
+                "port": 8070,
+                "kind": "systemd",
+                "url": None,
+                "unit": "openai-shim.service",
+                "desc": "OpenRouter proxy (OpenAI-compatible)",
             },
             {
                 "name": "Ollama",
                 "port": 11434,
-                "kind": "process",
+                "kind": "systemd",
                 "url": None,
-                "process": "ollama",
+                "unit": "ollama.service",
                 "desc": "Local Ollama (nomic-embed)",
             },
         ],
@@ -264,7 +345,7 @@ GROUPS: dict[str, dict] = {
         "services": [
             {
                 "name": "GitHub MCP",
-                "port": None,
+                "port": 8064,
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-github.service",
@@ -276,7 +357,7 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-hermes.service",
-                "desc": "Hermes Agent MCP",
+                "desc": "Hermes Agent MCP HTTP",
             },
             {
                 "name": "Integrations MCP",
@@ -296,27 +377,27 @@ GROUPS: dict[str, dict] = {
             },
             {
                 "name": "Search Tools MCP",
-                "port": None,
+                "port": 8065,
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-search-tools.service",
-                "desc": "DuckDuckGo+Jina+Brave+Firecrawl",
+                "desc": "Gemini+DuckDuckGo+Jina+Brave+Firecrawl",
             },
             {
                 "name": "Shopify MCP",
-                "port": None,
+                "port": 8063,
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-shopify.service",
-                "desc": "Read-only Shopify for Newtechkw",
+                "desc": "Read-only Shopify (Newtechkw)",
             },
             {
                 "name": "Workspace MCP",
-                "port": None,
+                "port": 8066,
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-workspace.service",
-                "desc": "FS + git access",
+                "desc": "FS + git access (read-only)",
             },
             {
                 "name": "Workspace Stream MCP",
@@ -332,7 +413,7 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": None,
                 "unit": "mcp-zoho.service",
-                "desc": "Read-only Zoho for Newtechkw",
+                "desc": "Read-only Zoho (Newtechkw)",
             },
             {
                 "name": "gbrain HTTP MCP",
@@ -341,6 +422,37 @@ GROUPS: dict[str, dict] = {
                 "url": "https://gbrain.83-171-249-32.nip.io/",
                 "unit": "gbrain.service",
                 "desc": "Knowledge graph MCP",
+            },
+        ],
+    },
+    "suna": {
+        "label": "Suna Tunnels",
+        "icon": "☀️",
+        "color": "#fbbf24",
+        "services": [
+            {
+                "name": "Suna API Tunnel",
+                "port": 8050,
+                "kind": "systemd",
+                "url": None,
+                "unit": "suna-tunnel-api.service",
+                "desc": "Cloudflared tunnel for Suna API",
+            },
+            {
+                "name": "Suna Supabase Tunnel",
+                "port": 54321,
+                "kind": "systemd",
+                "url": None,
+                "unit": "suna-tunnel-supabase.service",
+                "desc": "Cloudflared tunnel for Supabase",
+            },
+            {
+                "name": "Suna Web Tunnel",
+                "port": 3050,
+                "kind": "systemd",
+                "url": None,
+                "unit": "suna-tunnel-web.service",
+                "desc": "Cloudflared tunnel for Suna Web",
             },
         ],
     },
@@ -355,7 +467,7 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": "https://multica.83-171-249-32.nip.io/",
                 "unit": "nginx.service",
-                "desc": "Reverse proxy + LE certs",
+                "desc": "Reverse proxy + Let's Encrypt",
             },
             {
                 "name": "Docker",
@@ -366,12 +478,20 @@ GROUPS: dict[str, dict] = {
                 "desc": "Container runtime",
             },
             {
-                "name": "Redis",
+                "name": "Native Postgres",
+                "port": 5432,
+                "kind": "systemd",
+                "url": None,
+                "unit": "postgresql@16-main.service",
+                "desc": "Native PostgreSQL 16",
+            },
+            {
+                "name": "Redis (md)",
                 "port": 6379,
                 "kind": "docker",
                 "url": None,
                 "container": "md-redis",
-                "desc": "Cache/queue",
+                "desc": "Multica Redis",
             },
             {
                 "name": "Fail2Ban",
@@ -379,13 +499,53 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": None,
                 "unit": "fail2ban.service",
-                "desc": "SSH brute-force protection",
+                "desc": "SSH brute-force protection (96 banned)",
+            },
+            {
+                "name": "Tailscale",
+                "port": None,
+                "kind": "systemd",
+                "url": None,
+                "unit": "tailscaled.service",
+                "desc": "Tailscale VPN mesh",
+            },
+            {
+                "name": "Containerd",
+                "port": None,
+                "kind": "systemd",
+                "url": None,
+                "unit": "containerd.service",
+                "desc": "Container runtime daemon",
+            },
+            {
+                "name": "Cron",
+                "port": None,
+                "kind": "systemd",
+                "url": None,
+                "unit": "cron.service",
+                "desc": "Scheduled jobs",
+            },
+            {
+                "name": "rsyslog",
+                "port": None,
+                "kind": "systemd",
+                "url": None,
+                "unit": "rsyslog.service",
+                "desc": "System logging service",
+            },
+            {
+                "name": "Dream Dashboard",
+                "port": 9200,
+                "kind": "systemd",
+                "url": "https://dashboard.83-171-249-32.nip.io/",
+                "unit": "dream-dashboard.service",
+                "desc": "This dashboard 🎯",
             },
         ],
     },
 }
 
-# Login info — separate to allow easier redaction / role-based reveal.
+# Login info - separate to allow easier redaction / role-based reveal.
 LOGINS = {
     "Multica Frontend": {
         "url": "https://multica.83-171-249-32.nip.io/",
@@ -398,12 +558,13 @@ LOGINS = {
         "db": "multica",
         "pass": "multica123",
     },
-    "Paperclip DB": {"host": "0.0.0.0:5433", "user": "see Paperclip env"},
-    "Paperclip Server": {
+    "Paperclip Biz Server": {
         "url": "http://83.171.249.32:3200/",
         "user": "first-run signup",
     },
-    "Hermes Workspace": {
+    "Paperclip Biz DB": {"host": "0.0.0.0:5433", "user": "see Paperclip env"},
+    "Newtech PG (clone)": {"host": "127.0.0.1:5436", "user": "see container env"},
+    "Hermes Workspace (web)": {
         "url": "https://workspace.83-171-249-32.nip.io/",
         "user": "Hermes built-in auth",
     },
@@ -413,11 +574,19 @@ LOGINS = {
     },
     "9Router": {
         "url": "https://9router.83-171-249-32.nip.io/login",
-        "user": "see 9router .env",
+        "user": "API key in /root/.9router/db/data.sqlite",
+    },
+    "OpenClaw Gateway": {
+        "url": "http://127.0.0.1:3080/",
+        "user": "JWT in /root/.9router/jwt-secret",
     },
     "gbrain HTTP MCP": {
         "url": "https://gbrain.83-171-249-32.nip.io/",
         "user": "MCP token auth",
+    },
+    "Dream Dashboard": {
+        "url": "https://dashboard.83-171-249-32.nip.io/auth/login",
+        "user": "PIN in /opt/dream-dashboard/dashboard.env",
     },
 }
 
