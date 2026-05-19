@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>OpenClaw Dashboard · Newtech VPS</title>
+<meta name="theme-color" content="#0f0f13" />
+<link rel="icon" type="image/svg+xml" href="/static/openclaw.svg" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">🦞</div>
+      <div class="brand-text">
+        <h1>OpenClaw</h1>
+        <p>v{{ version }} · 83.171.249.32</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Console</div>
+      <a class="nav-item active" data-tab="overview"><span class="ni-icon">⌂</span> Overview</a>
+      <a class="nav-item"        data-tab="models"  ><span class="ni-icon">🧠</span> Models</a>
+      <a class="nav-item"        data-tab="agents"  ><span class="ni-icon">🤖</span> Agents</a>
+      <a class="nav-item"        data-tab="channels"><span class="ni-icon">📡</span> Channels</a>
+      <a class="nav-item"        data-tab="approvals"><span class="ni-icon">✅</span> Approvals</a>
+
+      <div class="nav-label">Tools</div>
+      <a class="nav-item"        data-tab="playground"><span class="ni-icon">🧪</span> Playground</a>
+      <a class="nav-item"        data-tab="logs"     ><span class="ni-icon">📜</span> Logs</a>
+      <a class="nav-item"        data-tab="usage"    ><span class="ni-icon">📊</span> Usage</a>
+      <a class="nav-item"        data-tab="help"     ><span class="ni-icon">❓</span> Help</a>
+
+      <div class="nav-label">External</div>
+      <a class="nav-item ext" href="https://dashboard.83-171-249-32.nip.io/" target="_blank">
+        <span class="ni-icon">🌈</span> Dream Dashboard <span class="ni-arrow">↗</span>
+      </a>
+      <a class="nav-item ext" href="https://9router.83-171-249-32.nip.io/" target="_blank">
+        <span class="ni-icon">🧠</span> 9Router <span class="ni-arrow">↗</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-foot" id="sidebar-foot">
+      <div class="foot-row"><span>Gateway</span><strong id="foot-gateway">…</strong></div>
+      <div class="foot-row"><span>Watchdog</span><strong id="foot-watchdog">…</strong></div>
+      <div class="foot-row"><span>JWT</span><strong id="foot-jwt">…</strong></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- ────────── Overview ────────── -->
+    <section class="tab" data-tab="overview">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Overview</h2>
+          <p><span class="live-dot"></span> Gateway status · auto-refresh every 10s</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <header><span class="kc-icon">🦞</span><h3>Gateway</h3></header>
+          <div class="big-status" id="kpi-gateway">…</div>
+          <p class="kpi-sub" id="kpi-gateway-detail">probing…</p>
+        </article>
+
+        <article class="kpi-card">
+          <header><span class="kc-icon">🐕</span><h3>Watchdog</h3></header>
+          <div class="big-status" id="kpi-watchdog">…</div>
+          <p class="kpi-sub" id="kpi-watchdog-detail">probing…</p>
+        </article>
+
+        <article class="kpi-card">
+          <header><span class="kc-icon">🔑</span><h3>Auth</h3></header>
+          <div class="big-status" id="kpi-jwt">…</div>
+          <p class="kpi-sub">JWT secret on disk</p>
+        </article>
+
+        <article class="kpi-card">
+          <header><span class="kc-icon">📋</span><h3>Version</h3></header>
+          <div class="big-status small" id="kpi-version">…</div>
+          <p class="kpi-sub">OpenClaw binary</p>
+        </article>
+      </section>
+
+      <section class="info-card">
+        <h3>openclaw status</h3>
+        <pre class="output" id="info-status">Loading…</pre>
+      </section>
+    </section>
+
+    <!-- ────────── Models ────────── -->
+    <section class="tab hidden" data-tab="models">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Models</h2>
+          <p>Configured models, fallbacks, and aliases · <code>openclaw models</code></p>
+        </div>
+        <button class="btn btn-ghost" data-refresh="models">↻ Refresh</button>
+      </div>
+      <pre class="output" id="out-models">Loading…</pre>
+    </section>
+
+    <!-- ────────── Agents ────────── -->
+    <section class="tab hidden" data-tab="agents">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Agents</h2>
+          <p>Isolated agent workspaces · <code>openclaw agents list</code></p>
+        </div>
+        <button class="btn btn-ghost" data-refresh="agents">↻ Refresh</button>
+      </div>
+      <pre class="output" id="out-agents">Loading…</pre>
+    </section>
+
+    <!-- ────────── Channels ────────── -->
+    <section class="tab hidden" data-tab="channels">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Channels</h2>
+          <p>Messaging channels · <code>openclaw channels list</code></p>
+        </div>
+        <button class="btn btn-ghost" data-refresh="channels">↻ Refresh</button>
+      </div>
+      <pre class="output" id="out-channels">Loading…</pre>
+    </section>
+
+    <!-- ────────── Approvals ────────── -->
+    <section class="tab hidden" data-tab="approvals">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Exec Approvals</h2>
+          <p>Pending command approvals · <code>openclaw approvals list</code></p>
+        </div>
+        <button class="btn btn-ghost" data-refresh="approvals">↻ Refresh</button>
+      </div>
+      <pre class="output" id="out-approvals">Loading…</pre>
+    </section>
+
+    <!-- ────────── Playground ────────── -->
+    <section class="tab hidden" data-tab="playground">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>API Playground</h2>
+          <p>Send a test <code>POST /v1/messages</code> through the gateway</p>
+        </div>
+      </div>
+
+      <div class="pg-form">
+        <div class="pg-row">
+          <label>Model</label>
+          <input id="pg-model" value="openrouter/anthropic/claude-haiku-4.5" />
+        </div>
+        <div class="pg-row">
+          <label>JWT Bearer (optional)</label>
+          <input id="pg-bearer" placeholder="eyJ... · leave blank to use server default" />
+        </div>
+        <div class="pg-row">
+          <label>Message</label>
+          <textarea id="pg-message" rows="4" placeholder="Say hello.">Reply with exactly one word: ok</textarea>
+        </div>
+        <div class="pg-actions">
+          <button class="btn" id="pg-send">Send</button>
+          <button class="btn btn-ghost" id="pg-clear">Clear</button>
+        </div>
+      </div>
+
+      <pre class="output" id="pg-response">Response will appear here.</pre>
+    </section>
+
+    <!-- ────────── Logs ────────── -->
+    <section class="tab hidden" data-tab="logs">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Logs</h2>
+          <p>Live tail · daily OpenClaw log + systemd journal</p>
+        </div>
+        <div class="head-actions">
+          <select id="log-src" class="select">
+            <option value="file">📄 Daily log file</option>
+            <option value="journal">🔧 systemd journal</option>
+            <option value="stream">▶ Live stream (journalctl -f)</option>
+          </select>
+          <button class="btn btn-ghost" id="log-refresh">↻ Refresh</button>
+          <button class="btn btn-ghost" id="log-stop">■ Stop</button>
+        </div>
+      </div>
+      <pre class="output log-pane" id="log-output">Select a source.</pre>
+    </section>
+
+    <!-- ────────── Usage ────────── -->
+    <section class="tab hidden" data-tab="usage">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Usage</h2>
+          <p>Log file growth + recent activity</p>
+        </div>
+      </div>
+      <div class="usage-grid">
+        <article class="kpi-card">
+          <header><h3>Today</h3></header>
+          <div class="big-status" id="usage-lines">…</div>
+          <p class="kpi-sub">lines in today's log</p>
+        </article>
+        <article class="kpi-card">
+          <header><h3>Total Logs</h3></header>
+          <div class="big-status" id="usage-total">…</div>
+          <p class="kpi-sub">across all log files</p>
+        </article>
+      </div>
+      <section class="info-card">
+        <h3>Log files</h3>
+        <table class="logs-table" id="usage-files"><thead><tr><th>File</th><th>Size</th><th>Modified</th></tr></thead><tbody></tbody></table>
+      </section>
+    </section>
+
+    <!-- ────────── Help ────────── -->
+    <section class="tab hidden" data-tab="help">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Help &amp; Reference</h2>
+          <p>OpenClaw Gateway · public URL <code>openclaw.83-171-249-32.nip.io</code></p>
+        </div>
+      </div>
+
+      <section class="info-card">
+        <h3>What is OpenClaw?</h3>
+        <p>OpenClaw is an HTTP gateway that exposes the Claude CLI subscription as an <strong>Anthropic-compatible Messages API</strong>. Hermes Agent, Multica, and Paperclip route their LLM traffic through it via <code>strip-proxy</code> → <code>9Router</code> → OpenClaw.</p>
+      </section>
+
+      <section class="info-card">
+        <h3>Endpoints</h3>
+        <table class="endpoints-table">
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method">GET</span></td>  <td><code>/healthz</code></td>     <td>liveness probe (returns "live")</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/v1/messages</code></td><td>Anthropic-compatible chat (JWT bearer auth)</td></tr>
+            <tr><td><span class="method">GET</span></td>  <td><code>/auth/</code></td>       <td>OAuth token exchange (port 3082)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="info-card">
+        <h3>Authentication</h3>
+        <p>JWT bearer token. The signing secret is stored at <code>/root/.9router/jwt-secret</code> on the VPS. Tokens must be presented as:</p>
+        <pre class="output">Authorization: Bearer &lt;jwt&gt;</pre>
+      </section>
+
+      <section class="info-card">
+        <h3>Systemd units</h3>
+        <table class="logs-table">
+          <thead><tr><th>Unit</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>openclaw-gateway.service</code></td><td>Gateway on port 3080</td></tr>
+            <tr><td><code>openclaw-watchdog.service</code></td><td>Auto-restarts the gateway if it crashes</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </section>
+
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

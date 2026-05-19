@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenClaw Dashboard - dedicated control panel (port 9210)
+After=network.target openclaw-gateway.service
+Wants=openclaw-gateway.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/openclaw-dashboard
+Environment=PYTHONUNBUFFERED=1
+Environment=OPENCLAW_BIN=/usr/local/bin/openclaw
+Environment=OPENCLAW_GATEWAY=http://127.0.0.1:3080
+Environment=OPENCLAW_LOG_DIR=/tmp/openclaw
+Environment=OPENCLAW_JWT_SECRET=/root/.9router/jwt-secret
+ExecStart=/opt/openclaw-dashboard/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9210 --proxy-headers
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target
