@@ -277,7 +277,7 @@ GROUPS: dict[str, dict] = {
                 "name": "OpenClaw Gateway",
                 "port": 3080,
                 "kind": "systemd",
-                "url": "https://openclaw.83-171-249-32.nip.io/healthz",
+                "url": "https://openclaw.83-171-249-32.nip.io/",
                 "unit": "openclaw-gateway.service",
                 "desc": "OpenClaw HTTP gateway (Claude CLI bridge)",
             },
