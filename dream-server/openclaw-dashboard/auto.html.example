@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Auto-authenticating landing for OpenClaw Control UI.
+     Token is injected at install time from /root/.openclaw/openclaw.json.
+     The fragment (#token=...) is read by the Control UI JS bundle but never
+     sent to the server, so it can't leak through nginx access logs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenClaw — connecting…</title>
+<style>body{margin:0;background:#f9fafb;color:#1f2937;font:14px sans-serif;display:grid;place-items:center;min-height:100vh}</style>
+</head>
+<body>
+<div><div style="font-size:48px;text-align:center">🦞</div><h1 style="text-align:center">OpenClaw</h1><p style="text-align:center">Authenticating…</p></div>
+<script>
+  var token = "REPLACE_AT_INSTALL_TIME";
+  var session = new URLSearchParams(location.search).get("session") || "main";
+  location.replace("/chat?session=" + encodeURIComponent(session) + "#token=" + token);
+</script>
+</body>
+</html>
