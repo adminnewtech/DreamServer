@@ -1,0 +1,31 @@
+{% for gid, group in groups.items() %}
+  {% set svcs = by_group.get(gid, []) %}
+  <section class="group" style="--accent: {{ group.color }}">
+    <header class="group-head">
+      <span class="g-icon">{{ group.icon }}</span>
+      <h2>{{ group.label }}</h2>
+      <span class="g-count">{{ svcs|length }}</span>
+    </header>
+    <div class="cards">
+      {% for s in svcs %}
+        <div class="card status-{{ s.status }}">
+          <div class="card-top">
+            <span class="dot"></span>
+            <strong class="svc-name">{{ s.name }}</strong>
+            {% if s.port %}<span class="port">:{{ s.port }}</span>{% endif %}
+          </div>
+          <div class="card-desc">{{ s.desc }}</div>
+          <div class="card-meta">
+            <span class="kind">{{ s.kind }}</span>
+            <span class="detail" title="{{ s.detail }}">{{ s.detail|truncate(40) }}</span>
+          </div>
+          <div class="card-actions">
+            {% if s.url %}<a href="{{ s.url }}" target="_blank" class="btn">Open ↗</a>{% endif %}
+            {% if s.unit %}<a href="/logs/{{ s.unit }}" target="_blank" class="btn btn-secondary">Logs</a>{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+<!-- updated at {{ sys.uptime_h }}h uptime · totals: {{ totals.up }}/{{ totals.total }} -->
