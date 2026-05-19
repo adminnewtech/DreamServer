@@ -2,6 +2,7 @@
 
 import json
 import sys
+from pathlib import Path
 from unittest.mock import patch, MagicMock, AsyncMock
 
 import pytest
@@ -142,6 +143,22 @@ def test_update_command_windows_requires_usable_bash(monkeypatch, tmp_path):
 
     assert exc.value.status_code == 501
     assert "usable Bash runtime" in exc.value.detail
+
+
+def test_update_command_windows_uses_bash_path(monkeypatch):
+    """Windows update actions pass Git Bash a POSIX-style script path."""
+    import routers.updates as updates_mod
+
+    monkeypatch.setattr(updates_mod.os, "name", "nt")
+    monkeypatch.setattr(updates_mod, "_find_usable_bash", lambda: "C:\\Program Files\\Git\\bin\\bash.exe")
+
+    command = updates_mod._update_command(Path("C:/DreamServer/dream-server/scripts/dream-update.sh"), "check")
+
+    assert command == [
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+        "/c/DreamServer/dream-server/scripts/dream-update.sh",
+        "check",
+    ]
 
 
 # ---------------------------------------------------------------------------

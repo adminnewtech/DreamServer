@@ -114,6 +114,20 @@ def _find_usable_bash() -> Optional[str]:
     return None
 
 
+def _to_bash_path(path: Path) -> str:
+    """Convert a Windows path into a form Git Bash can execute."""
+    path_str = str(path)
+    if os.name != "nt":
+        return path_str
+
+    match = re.match(r"^([A-Za-z]):[\\/](.*)$", path_str)
+    if match:
+        drive = match.group(1).lower()
+        rest = match.group(2).replace("\\", "/")
+        return f"/{drive}/{rest}"
+    return path_str.replace("\\", "/")
+
+
 def _update_command(script_path: Path, *args: str) -> list[str]:
     """Build a platform-aware command for dream-update.sh."""
     if os.name != "nt":
@@ -121,7 +135,7 @@ def _update_command(script_path: Path, *args: str) -> list[str]:
 
     bash = _find_usable_bash()
     if bash:
-        return [bash, str(script_path), *args]
+        return [bash, _to_bash_path(script_path), *args]
 
     raise HTTPException(
         status_code=501,
