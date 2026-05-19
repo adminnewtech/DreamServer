@@ -251,6 +251,14 @@ GROUPS: dict[str, dict] = {
                 "desc": "Native dashboard",
             },
             {
+                "name": "Hermes Dashboard CLI",
+                "port": 39119,
+                "kind": "process",
+                "url": None,
+                "process": "hermes_cli.main dashboard",
+                "desc": "hermes_cli dashboard process (port 39119)",
+            },
+            {
                 "name": "Hermes CDP Bridge",
                 "port": None,
                 "kind": "systemd",
@@ -269,7 +277,7 @@ GROUPS: dict[str, dict] = {
                 "name": "OpenClaw Gateway",
                 "port": 3080,
                 "kind": "systemd",
-                "url": None,
+                "url": "https://openclaw.83-171-249-32.nip.io/healthz",
                 "unit": "openclaw-gateway.service",
                 "desc": "OpenClaw HTTP gateway (Claude CLI bridge)",
             },
@@ -285,7 +293,7 @@ GROUPS: dict[str, dict] = {
                 "name": "OpenClaw Auth",
                 "port": 3082,
                 "kind": "process",
-                "url": None,
+                "url": "https://openclaw.83-171-249-32.nip.io/auth/",
                 "process": "openclaw",
                 "desc": "OpenClaw auth endpoint (401 = healthy)",
             },
@@ -456,6 +464,37 @@ GROUPS: dict[str, dict] = {
             },
         ],
     },
+    "storefront": {
+        "label": "Storefront & Sites",
+        "icon": "🛍️",
+        "color": "#06b6d4",
+        "services": [
+            {
+                "name": "Medusa Backend",
+                "port": 9500,
+                "kind": "process",
+                "url": "https://medusa.83-171-249-32.nip.io/app",
+                "process": "medusa-newtech",
+                "desc": "Medusa.js 2.15.2 e-commerce backend (pm2) · /app for admin",
+            },
+            {
+                "name": "Medusa Storefront",
+                "port": 8500,
+                "kind": "process",
+                "url": "https://shop.83-171-249-32.nip.io/",
+                "process": "storefront",
+                "desc": "Shop frontend (Medusa storefront)",
+            },
+            {
+                "name": "Claude Agent Site",
+                "port": None,
+                "kind": "process",
+                "url": None,
+                "process": "/home/claude-agent/website/server.js",
+                "desc": "Claude Agent landing page",
+            },
+        ],
+    },
     "infra": {
         "label": "Infrastructure",
         "icon": "⚙️",
@@ -577,8 +616,16 @@ LOGINS = {
         "user": "API key in /root/.9router/db/data.sqlite",
     },
     "OpenClaw Gateway": {
-        "url": "http://127.0.0.1:3080/",
+        "url": "https://openclaw.83-171-249-32.nip.io/",
         "user": "JWT in /root/.9router/jwt-secret",
+    },
+    "Medusa Backend": {
+        "url": "https://medusa.83-171-249-32.nip.io/",
+        "user": "PG: medusa / db medusa_newtech (see /opt/medusa-newtech/.env)",
+    },
+    "Medusa Storefront": {
+        "url": "https://shop.83-171-249-32.nip.io/",
+        "user": "no auth",
     },
     "gbrain HTTP MCP": {
         "url": "https://gbrain.83-171-249-32.nip.io/",
