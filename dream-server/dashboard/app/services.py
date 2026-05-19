@@ -279,7 +279,7 @@ GROUPS: dict[str, dict] = {
                 "kind": "systemd",
                 "url": "https://openclaw.83-171-249-32.nip.io/",
                 "unit": "openclaw-gateway.service",
-                "desc": "OpenClaw HTTP gateway (Claude CLI bridge)",
+                "desc": "OpenClaw Control UI · native chat interface",
             },
             {
                 "name": "OpenClaw Watchdog",
