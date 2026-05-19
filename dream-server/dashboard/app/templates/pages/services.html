@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block title %}Services · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Services</h2>
+      <p><span class="live-dot"></span> Live · auto-refresh every 10s · <span id="now"></span></p>
+    </div>
+    <div class="head-stats">
+      <div class="stat-pill up">      <label>Online</label>  <value>{{ totals.up }}</value></div>
+      <div class="stat-pill degraded"><label>Degraded</label><value>{{ totals.degraded }}</value></div>
+      <div class="stat-pill down">    <label>Down</label>    <value>{{ totals.down }}</value></div>
+      <div class="stat-pill">         <label>Total</label>   <value>{{ totals.total }}</value></div>
+    </div>
+  </div>
+
+  <div class="section-search">
+    <input type="search" id="filter" class="search-box" placeholder="Search services... (press /)" />
+    <div class="refresh-info">Live</div>
+  </div>
+
+  <div id="grid" hx-get="/partial/grid" hx-trigger="every 10s" hx-target="#grid" hx-swap="innerHTML">
+    {% include "partials/grid.html" %}
+  </div>
+
+  {% if show_logins and logins %}
+  <section class="logins-section">
+    <h2>🔐 Access Reference</h2>
+    <table>
+      <thead>
+        <tr><th>Service</th><th>URL / Host</th><th>User</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+      {% for name, info in logins.items() %}
+        <tr>
+          <td><strong>{{ name }}</strong></td>
+          <td>{% if info.url %}<a href="{{ info.url }}" target="_blank">{{ info.url }}</a>{% elif info.host %}<code>{{ info.host }}</code>{% endif %}</td>
+          <td>{% if info.user %}<code>{{ info.user }}</code>{% endif %}{% if info.db %} / <code>{{ info.db }}</code>{% endif %}</td>
+          <td>{% if info.pass %}<code>{{ info.pass }}</code>{% elif info.notes %}{{ info.notes }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <footer>
+    Built on <a href="https://github.com/Light-Heart-Labs/DreamServer">DreamServer</a>
+    · fork <a href="https://github.com/adminnewtech/DreamServer">adminnewtech/DreamServer</a>
+    · {{ totals.up }}/{{ totals.total }} services healthy
+    · uptime {{ sys.uptime_h }}h · load {{ sys.load }} · mem {{ sys.mem_used_pct }}%
+  </footer>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>
+  // Live clock
+  function tick() {
+    const el = document.getElementById('now');
+    if (el) el.textContent = new Date().toLocaleString('en-GB', { hour12: false });
+  }
+  tick(); setInterval(tick, 1000);
+
+  // Search filter
+  const search = document.getElementById('filter');
+  function applyFilter() {
+    const q = (search.value || '').toLowerCase().trim();
+    document.querySelectorAll('.card').forEach(c => {
+      const txt = c.dataset.search || '';
+      c.dataset.hidden = q && !txt.includes(q) ? 'true' : 'false';
+    });
+    document.querySelectorAll('.group').forEach(g => {
+      const visible = g.querySelectorAll('.card:not([data-hidden="true"])').length;
+      g.dataset.empty = visible === 0 ? 'true' : 'false';
+    });
+  }
+  search.addEventListener('input', applyFilter);
+  document.body.addEventListener('htmx:afterSwap', applyFilter);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === '/') { e.preventDefault(); search.focus(); }
+  });
+</script>
+{% endblock %}

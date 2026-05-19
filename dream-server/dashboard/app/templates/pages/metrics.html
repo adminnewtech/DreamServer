@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block title %}Metrics · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Metrics</h2>
+      <p>Host + per-service time-series · last 24h · sampled every 60s</p>
+    </div>
+    <div class="head-stats">
+      <select id="range" class="select">
+        <option value="1">Last 1h</option>
+        <option value="6">Last 6h</option>
+        <option value="24" selected>Last 24h</option>
+        <option value="48">Last 48h</option>
+      </select>
+    </div>
+  </div>
+
+  <section class="charts-grid">
+    <article class="chart-card"><h3>CPU %</h3><canvas id="c-cpu"></canvas></article>
+    <article class="chart-card"><h3>Load avg</h3><canvas id="c-load"></canvas></article>
+    <article class="chart-card"><h3>Memory %</h3><canvas id="c-mem"></canvas></article>
+    <article class="chart-card"><h3>Disk %</h3><canvas id="c-disk"></canvas></article>
+  </section>
+
+  <section class="sparklines">
+    <h3>Service Memory (MB) · sparkline per service</h3>
+    <div id="sparks" class="spark-grid"></div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const SERVICES = {{ service_names | tojson }};
+  let charts = {};
+
+  async function loadHost() {
+    const hours = document.getElementById('range').value;
+    const r = await fetch('/api/metrics/host?hours=' + hours);
+    const rows = await r.json();
+    if (!rows.length) return;
+    const labels = rows.map(x => new Date(x.ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    drawChart('c-cpu', labels, rows.map(x => x.cpu_pct), '#9d00ff');
+    drawChart('c-load', labels, rows.map(x => x.load1), '#10b981');
+    drawChart('c-mem', labels, rows.map(x => x.mem_pct), '#f59e0b');
+    drawChart('c-disk', labels, rows.map(x => x.disk_pct), '#3b82f6');
+  }
+
+  function drawChart(id, labels, data, color) {
+    if (charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id).getContext('2d');
+    charts[id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#71717a', maxTicksLimit: 8 }, grid: { color: '#27272a44' } },
+          y: { ticks: { color: '#71717a' }, grid: { color: '#27272a44' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  async function loadSparklines() {
+    const hours = document.getElementById('range').value;
+    const root = document.getElementById('sparks');
+    while (root.firstChild) root.removeChild(root.firstChild);
+
+    // Limit concurrency
+    const chunks = [];
+    for (let i = 0; i < SERVICES.length; i += 8) chunks.push(SERVICES.slice(i, i + 8));
+
+    for (const chunk of chunks) {
+      const results = await Promise.all(chunk.map(async name => {
+        const r = await fetch('/api/metrics/service/' + encodeURIComponent(name) + '?hours=' + hours);
+        return { name, rows: await r.json() };
+      }));
+      for (const { name, rows } of results) {
+        const card = document.createElement('div');
+        card.className = 'spark-card';
+        const label = document.createElement('div');
+        label.className = 'spark-label';
+        label.textContent = name;
+        const canvas = document.createElement('canvas');
+        canvas.height = 32;
+        card.appendChild(label);
+        card.appendChild(canvas);
+        root.appendChild(card);
+        if (rows.length) {
+          const labels = rows.map(x => '');
+          new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: { labels, datasets: [{ data: rows.map(x => x.mem_mb || 0), borderColor: '#a78bfa', backgroundColor: '#a78bfa22', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }] },
+            options: { responsive: false, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, beginAtZero: true } } }
+          });
+        }
+      }
+    }
+  }
+
+  document.getElementById('range').addEventListener('change', () => { loadHost(); loadSparklines(); });
+  loadHost();
+  loadSparklines();
+  setInterval(loadHost, 60000);
+</script>
+{% endblock %}

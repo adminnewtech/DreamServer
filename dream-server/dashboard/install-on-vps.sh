@@ -23,10 +23,32 @@ fi
 
 # 2. Stage files
 SRC_DIR=$(cd "$(dirname "$0")" && pwd)
-mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/data"
+
+# Remove old app/ to avoid stale templates/routers (data/ preserved)
+rm -rf "$INSTALL_DIR/app"
 cp -r "$SRC_DIR/app" "$INSTALL_DIR/"
 cp "$SRC_DIR/requirements.txt" "$INSTALL_DIR/"
 cp "$SRC_DIR/dream-dashboard.service" "$INSTALL_DIR/"
+
+# Seed dashboard.env (PIN + integration URLs) only on first install
+if [ ! -f "$INSTALL_DIR/dashboard.env" ]; then
+  cat > "$INSTALL_DIR/dashboard.env" <<EOF
+# Dream Dashboard environment - edit values then systemctl restart dream-dashboard
+DASHBOARD_ADMIN_PIN=$(openssl rand -hex 4 2>/dev/null || echo "changeme$$")
+NINEROUTER_URL=https://9router.83-171-249-32.nip.io
+NINEROUTER_MODEL=claude-sonnet-4-5
+MULTICA_MASTER_API=http://127.0.0.1:9103
+PAPERCLIP_URL=http://127.0.0.1:3200
+HERMES_API=http://127.0.0.1:8051
+MULTICA_PG_DSN=postgresql://multica:multica123@127.0.0.1:5435/multica
+PAPERCLIP_PG_DSN=postgresql://paperclip:paperclip@127.0.0.1:5433/paperclip
+REDIS_URL=redis://127.0.0.1:6379/0
+EOF
+  chmod 600 "$INSTALL_DIR/dashboard.env"
+  echo "==> seeded $INSTALL_DIR/dashboard.env (random PIN)"
+  echo "    Admin PIN: $(grep DASHBOARD_ADMIN_PIN "$INSTALL_DIR/dashboard.env" | cut -d= -f2)"
+fi
 
 # 3. Venv + deps
 cd "$INSTALL_DIR"

@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block title %}Login · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="login-wrap">
+    <article class="login-card">
+      <h2>Admin Login</h2>
+      {% if not pin_enabled %}
+        <p class="kpi-empty">PIN auth not configured. Set <code>DASHBOARD_ADMIN_PIN</code> in the systemd unit.</p>
+      {% elif logged_in %}
+        <p>You are already logged in.</p>
+        <form action="/auth/logout" method="post"><button class="btn">Logout</button></form>
+      {% else %}
+        <p>Enter the admin PIN to enable restart/stop actions and AI assistant.</p>
+        <form action="/auth/login" method="post" class="login-form">
+          <input type="hidden" name="next" value="{{ next }}" />
+          <input class="search-box" type="password" name="pin" placeholder="PIN" autocomplete="off" required autofocus />
+          <button class="btn" type="submit">Login</button>
+        </form>
+      {% endif %}
+    </article>
+  </div>
+{% endblock %}

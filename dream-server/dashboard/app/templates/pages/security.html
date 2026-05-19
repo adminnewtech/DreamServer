@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+{% block title %}Security · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Security</h2>
+      <p>SSL certificates · fail2ban · listening ports · top processes</p>
+    </div>
+  </div>
+
+  <section class="sec-grid">
+
+    <!-- Certs -->
+    <article class="sec-card sec-wide">
+      <header><span class="sec-icon">🔐</span><h3>SSL Certificates ({{ data.certs|length }})</h3></header>
+      <table class="sec-table">
+        <thead><tr><th>Domain</th><th>Expires</th><th>Days Left</th><th>Issuer</th></tr></thead>
+        <tbody>
+          {% for c in data.certs %}
+            <tr class="cert-{{ c.status or 'unknown' }}">
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.expires or '—' }}</td>
+              <td><span class="cert-badge cert-{{ c.status or 'unknown' }}">{{ c.days_left if c.days_left is not none else '?' }}</span></td>
+              <td class="dim">{{ c.issuer or c.error or '' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <!-- Fail2ban -->
+    <article class="sec-card">
+      <header><span class="sec-icon">🚫</span><h3>Fail2Ban</h3></header>
+      {% if data.fail2ban.error %}
+        <div class="kpi-empty">⚠ {{ data.fail2ban.error }}</div>
+      {% else %}
+        {% for j in data.fail2ban.jails %}
+          <div class="f2b-jail">
+            <strong>{{ j.jail }}</strong>
+            <div class="f2b-stats">
+              <span><label>Failed</label> {{ j.failed or 0 }}</span>
+              <span><label>Currently banned</label> {{ j.banned or 0 }}</span>
+              <span><label>Total banned</label> {{ j.total_banned or 0 }}</span>
+            </div>
+            {% if j.banned_ips %}
+              <div class="f2b-ips">{% for ip in j.banned_ips %}<code>{{ ip }}</code> {% endfor %}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </article>
+
+    <!-- Top processes -->
+    <article class="sec-card">
+      <header><span class="sec-icon">🔥</span><h3>Top Processes by CPU</h3></header>
+      <table class="sec-table">
+        <thead><tr><th>PID</th><th>User</th><th>%CPU</th><th>%MEM</th><th>Command</th></tr></thead>
+        <tbody>
+          {% for p in data.processes %}
+            <tr>
+              <td><code>{{ p.pid }}</code></td>
+              <td>{{ p.user }}</td>
+              <td><strong>{{ p.cpu }}</strong></td>
+              <td>{{ p.mem }}</td>
+              <td class="dim">{{ p.command }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <!-- Ports -->
+    <article class="sec-card sec-wide">
+      <header><span class="sec-icon">🔌</span><h3>Listening Ports ({{ data.ports|length }})</h3></header>
+      <table class="sec-table">
+        <thead><tr><th>Port</th><th>Address</th><th>Process</th></tr></thead>
+        <tbody>
+          {% for p in data.ports %}
+            <tr><td><strong>{{ p.port }}</strong></td><td><code>{{ p.address }}</code></td><td class="dim">{{ p.process }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </section>
+{% endblock %}

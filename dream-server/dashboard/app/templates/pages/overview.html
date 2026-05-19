@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+{% block title %}Overview · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Overview</h2>
+      <p><span class="live-dot"></span> Integrated view across {{ totals.total }} services</p>
+    </div>
+    <div class="head-stats">
+      <div class="stat-pill up">      <label>Online</label><value>{{ totals.up }}</value></div>
+      <div class="stat-pill degraded"><label>Deg</label><value>{{ totals.degraded }}</value></div>
+      <div class="stat-pill down">    <label>Down</label><value>{{ totals.down }}</value></div>
+    </div>
+  </div>
+
+  <!-- KPI grid: 4 columns on desktop -->
+  <section class="kpi-grid">
+
+    <!-- Host -->
+    <article class="kpi-card kpi-host">
+      <header><span class="kc-icon">⚙️</span><h3>Host</h3></header>
+      <div class="kpi-rows">
+        <div><label>Uptime</label><value>{{ sys.uptime_h }}h</value></div>
+        <div><label>Load</label><value>{{ sys.load }}</value></div>
+        <div><label>Memory</label><value>{{ sys.mem_used_pct }}% of {{ sys.mem_total_gb }}G</value></div>
+        <div><label>Disk /</label><value>{{ sys.disk_used_pct }}</value></div>
+      </div>
+      <div class="mem-bar"><div class="mem-bar-fill" style="width: {{ sys.mem_used_pct }}%"></div></div>
+    </article>
+
+    <!-- Multica -->
+    <article class="kpi-card kpi-multica">
+      <header><span class="kc-icon">📊</span><h3>Multica</h3>
+        <a class="kc-link" href="https://multica.83-171-249-32.nip.io/" target="_blank">↗</a>
+      </header>
+      {% set m = integrations.multica %}
+      {% if m.get('_error') %}
+        <div class="kpi-empty">⚠ {{ m._error }}</div>
+      {% else %}
+        <div class="kpi-rows">
+          {% for k, v in m.items() %}
+            {% if k != '_error' and v|string|length < 40 %}
+              <div><label>{{ k|replace('_',' ')|title }}</label><value>{{ v }}</value></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+
+    <!-- Paperclip -->
+    <article class="kpi-card kpi-paperclip">
+      <header><span class="kc-icon">📎</span><h3>Paperclip</h3>
+        <a class="kc-link" href="http://83.171.249.32:3200/" target="_blank">↗</a>
+      </header>
+      {% set p = integrations.paperclip %}
+      {% if p.get('_error') %}
+        <div class="kpi-empty">⚠ {{ p._error }}</div>
+      {% else %}
+        <div class="kpi-rows">
+          {% for k, v in p.items() %}
+            {% if k != '_error' and v|string|length < 40 %}
+              <div><label>{{ k|replace('_',' ')|title }}</label><value>{{ v }}</value></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+
+    <!-- Hermes -->
+    <article class="kpi-card kpi-hermes">
+      <header><span class="kc-icon">🚀</span><h3>Hermes</h3>
+        <a class="kc-link" href="https://workspace.83-171-249-32.nip.io/" target="_blank">↗</a>
+      </header>
+      {% set h = integrations.hermes %}
+      {% if h.get('_error') %}
+        <div class="kpi-empty">⚠ {{ h._error }}</div>
+      {% else %}
+        <div class="kpi-rows">
+          {% for k, v in h.items() %}
+            {% if k != '_error' and v|string|length < 40 %}
+              <div><label>{{ k|replace('_',' ')|title }}</label><value>{{ v }}</value></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+
+    <!-- 9Router -->
+    <article class="kpi-card kpi-router">
+      <header><span class="kc-icon">🧠</span><h3>9Router</h3>
+        <a class="kc-link" href="https://9router.83-171-249-32.nip.io/" target="_blank">↗</a>
+      </header>
+      {% set r = integrations.ninerouter %}
+      {% if r.get('_error') %}
+        <div class="kpi-empty">⚠ {{ r._error }}</div>
+      {% else %}
+        <div class="kpi-rows">
+          {% for k, v in r.items() %}
+            {% if k != '_error' and v|string|length < 40 %}
+              <div><label>{{ k|replace('_',' ')|title }}</label><value>{{ v }}</value></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+
+  </section>
+
+  <section class="quick-actions">
+    <h3>Quick Links</h3>
+    <div class="quick-grid">
+      <a class="quick-link" href="/">📡 Services Grid</a>
+      <a class="quick-link" href="/logs">📜 Live Logs</a>
+      <a class="quick-link" href="/metrics">📊 Time-series Metrics</a>
+      <a class="quick-link" href="/databases">🗄 Database Explorer</a>
+      <a class="quick-link" href="/topology">🕸 Service Topology</a>
+      <a class="quick-link" href="/security">🛡 Security &amp; Certs</a>
+      <a class="quick-link" href="/assistant">🤖 AI Assistant</a>
+    </div>
+  </section>
+{% endblock %}

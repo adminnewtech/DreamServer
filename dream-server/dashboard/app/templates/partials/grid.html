@@ -30,7 +30,18 @@
           </div>
           <div class="svc-actions">
             {% if s.url %}<a href="{{ s.url }}" target="_blank" class="btn">Open ↗</a>{% endif %}
-            {% if s.unit %}<a href="/logs/{{ s.unit }}" target="_blank" class="btn btn-ghost">Logs</a>{% endif %}
+            {% if s.unit %}
+              <a href="/logs?unit={{ s.unit }}" class="btn btn-ghost">Logs</a>
+              {% if admin_logged_in %}
+                <button class="btn btn-ghost svc-action" data-kind="systemd" data-target="{{ s.unit }}" data-action="restart" title="Restart">↻</button>
+              {% endif %}
+            {% endif %}
+            {% if s.container %}
+              <a href="/logs?container={{ s.container }}" class="btn btn-ghost">Logs</a>
+              {% if admin_logged_in %}
+                <button class="btn btn-ghost svc-action" data-kind="docker" data-target="{{ s.container }}" data-action="restart" title="Restart">↻</button>
+              {% endif %}
+            {% endif %}
           </div>
         </article>
       {% endfor %}

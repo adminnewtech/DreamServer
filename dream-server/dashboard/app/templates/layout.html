@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dream">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+  <meta name="theme-color" content="#0f0f13" />
+  <meta name="description" content="{{ brand_name }} - integrated VPS control center" />
+
+  <link rel="icon" type="image/svg+xml" href="/static/dream.svg" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/static/dream.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Dream" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    // Theme bootstrap - runs before any rendering to avoid flash
+    (function() {
+      var t = localStorage.getItem('dream-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">DS</div>
+        <div class="brand-text">
+          <h1>{{ brand_name }}</h1>
+          <p>{{ host_label }}</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <div class="nav-label">Operations</div>
+        <a href="/overview"  class="nav-item {% if active_page == 'overview' %}active{% endif %}">
+          <span class="ni-icon">⌂</span> Overview
+        </a>
+        <a href="/"          class="nav-item {% if active_page == 'services' %}active{% endif %}">
+          <span class="ni-icon">📡</span> Services
+        </a>
+        <a href="/logs"      class="nav-item {% if active_page == 'logs' %}active{% endif %}">
+          <span class="ni-icon">📜</span> Logs
+        </a>
+        <a href="/metrics"   class="nav-item {% if active_page == 'metrics' %}active{% endif %}">
+          <span class="ni-icon">📊</span> Metrics
+        </a>
+        <a href="/topology"  class="nav-item {% if active_page == 'topology' %}active{% endif %}">
+          <span class="ni-icon">🕸</span> Topology
+        </a>
+
+        <div class="nav-label">Data</div>
+        <a href="/databases" class="nav-item {% if active_page == 'databases' %}active{% endif %}">
+          <span class="ni-icon">🗄</span> Databases
+        </a>
+
+        <div class="nav-label">Security</div>
+        <a href="/security"  class="nav-item {% if active_page == 'security' %}active{% endif %}">
+          <span class="ni-icon">🛡</span> Security
+        </a>
+
+        <div class="nav-label">AI</div>
+        <a href="/assistant" class="nav-item {% if active_page == 'assistant' %}active{% endif %}">
+          <span class="ni-icon">🤖</span> Assistant
+        </a>
+
+        <div class="nav-label">External</div>
+        <a href="https://multica.83-171-249-32.nip.io/" class="nav-item ext" target="_blank">
+          <span class="ni-icon">📊</span> Multica <span class="ni-arrow">↗</span>
+        </a>
+        <a href="http://83.171.249.32:3200/" class="nav-item ext" target="_blank">
+          <span class="ni-icon">📎</span> Paperclip <span class="ni-arrow">↗</span>
+        </a>
+        <a href="https://workspace.83-171-249-32.nip.io/" class="nav-item ext" target="_blank">
+          <span class="ni-icon">🚀</span> Hermes <span class="ni-arrow">↗</span>
+        </a>
+        <a href="https://9router.83-171-249-32.nip.io/" class="nav-item ext" target="_blank">
+          <span class="ni-icon">🧠</span> 9Router <span class="ni-arrow">↗</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="foot-actions">
+          <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+            <span class="theme-icon">◐</span>
+          </button>
+          {% if request.cookies.get('dream_pin') %}
+            <form action="/auth/logout" method="post" style="margin:0">
+              <button class="link-btn" title="Logout">🔓 admin</button>
+            </form>
+          {% else %}
+            <a class="link-btn" href="/auth/login" title="Login as admin">🔒 login</a>
+          {% endif %}
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      {% block main %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+{% block title %}Logs · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Live Logs</h2>
+      <p>Stream + search across {{ units|length }} systemd units and {{ containers|length }} containers</p>
+    </div>
+  </div>
+
+  <div class="logs-toolbar">
+    <select id="unit-select" class="select">
+      <option value="">— select systemd unit —</option>
+      {% for u in units %}<option value="{{ u }}">🔧 {{ u }}</option>{% endfor %}
+      <optgroup label="Containers">
+        {% for c in containers %}<option value="docker:{{ c }}">🐳 {{ c }}</option>{% endfor %}
+      </optgroup>
+    </select>
+
+    <button class="btn" id="stream-btn" disabled>▶ Stream</button>
+    <button class="btn btn-ghost" id="stop-btn" disabled>■ Stop</button>
+
+    <input id="search-input" class="search-box" placeholder="Search inline (grep)" />
+
+    <input id="cross-search" class="search-box" placeholder="Cross-unit search... (Enter)" />
+  </div>
+
+  <pre id="log-output" class="log-pane">Select a unit and press ▶ Stream to begin tailing.
+
+Or type in cross-unit search to grep across all known units.
+  </pre>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const unitSelect  = document.getElementById('unit-select');
+  const streamBtn   = document.getElementById('stream-btn');
+  const stopBtn     = document.getElementById('stop-btn');
+  const searchInput = document.getElementById('search-input');
+  const crossSearch = document.getElementById('cross-search');
+  const logPane     = document.getElementById('log-output');
+
+  let eventSource = null;
+
+  function clearPane() {
+    while (logPane.firstChild) logPane.removeChild(logPane.firstChild);
+  }
+
+  function appendLine(text) {
+    const q = searchInput.value.trim().toLowerCase();
+    if (q && !text.toLowerCase().includes(q)) return;
+    let cls = '';
+    if (/error|fail|fatal|panic/i.test(text)) cls = 'log-err';
+    else if (/warn/i.test(text)) cls = 'log-warn';
+    else if (/info|ok|ready/i.test(text)) cls = 'log-info';
+    const line = document.createElement('div');
+    line.className = 'log-line ' + cls;
+    line.textContent = text;
+    logPane.appendChild(line);
+    while (logPane.children.length > 2000) logPane.removeChild(logPane.firstChild);
+    logPane.scrollTop = logPane.scrollHeight;
+  }
+
+  function setStreaming(streaming) {
+    streamBtn.disabled = streaming || !unitSelect.value;
+    stopBtn.disabled = !streaming;
+  }
+
+  unitSelect.addEventListener('change', () => {
+    streamBtn.disabled = !unitSelect.value;
+  });
+
+  streamBtn.addEventListener('click', async () => {
+    const val = unitSelect.value;
+    if (!val) return;
+    clearPane();
+    if (val.startsWith('docker:')) {
+      const c = val.slice(7);
+      const r = await fetch('/logs/docker/' + encodeURIComponent(c) + '?lines=200');
+      const txt = await r.text();
+      txt.split('\n').forEach(appendLine);
+      setStreaming(false);
+      return;
+    }
+    eventSource = new EventSource('/logs/stream/' + encodeURIComponent(val));
+    eventSource.onmessage = e => appendLine(e.data);
+    eventSource.onerror = () => { appendLine('--- stream error / reconnecting ---'); };
+    setStreaming(true);
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    setStreaming(false);
+  });
+
+  crossSearch.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    const q = crossSearch.value.trim();
+    if (q.length < 2) return;
+    clearPane();
+    appendLine('--- searching for "' + q + '" across all units ---');
+    try {
+      const r = await fetch('/logs/search?q=' + encodeURIComponent(q) + '&lines=300');
+      const txt = await r.text();
+      txt.split('\n').forEach(appendLine);
+    } catch (err) {
+      appendLine('error: ' + err);
+    }
+  });
+
+  // Honour ?unit= query param to deep-link from grid cards
+  const params = new URLSearchParams(window.location.search);
+  const preselect = params.get('unit') || (params.get('container') && 'docker:' + params.get('container'));
+  if (preselect) {
+    unitSelect.value = preselect;
+    if (unitSelect.value === preselect) {
+      streamBtn.disabled = false;
+      streamBtn.click();
+    }
+  }
+</script>
+{% endblock %}

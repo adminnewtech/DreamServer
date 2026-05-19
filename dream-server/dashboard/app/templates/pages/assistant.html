@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+{% block title %}AI Assistant · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>AI Server Assistant</h2>
+      <p>Ask about server state · backed by 9Router · context: live status + metrics</p>
+    </div>
+  </div>
+
+  <div class="chat-wrap">
+    <div id="chat" class="chat-log">
+      <div class="msg assistant">
+        <div class="msg-role">Assistant</div>
+        <div class="msg-body">Hi! I have access to the live status of 41 services on this VPS. Ask me things like:
+          <ul>
+            <li><em>"Which services are degraded right now?"</em></li>
+            <li><em>"Why is Multica using so much memory?"</em></li>
+            <li><em>"Summarize the last 9Router restart"</em></li>
+            <li><em>"وش الـ MCP servers الفعّالة؟"</em></li>
+          </ul>
+          {% if not request.cookies.get('dream_pin') %}
+            <p><strong>You are not logged in.</strong> Chat requires admin PIN — <a href="/auth/login?next=/assistant">login</a>.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <form class="chat-input" id="chat-form">
+      <textarea id="chat-msg" placeholder="Ask the assistant... (Enter to send, Shift+Enter for newline)" rows="2"></textarea>
+      <button class="btn" type="submit" id="send-btn">Send</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const chat = document.getElementById('chat');
+  const form = document.getElementById('chat-form');
+  const msgInput = document.getElementById('chat-msg');
+  const sendBtn = document.getElementById('send-btn');
+
+  function appendMsg(role, body) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    const r = document.createElement('div'); r.className = 'msg-role'; r.textContent = role === 'user' ? 'You' : 'Assistant';
+    const b = document.createElement('div'); b.className = 'msg-body'; b.textContent = body;
+    div.appendChild(r); div.appendChild(b);
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return b;
+  }
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = msgInput.value.trim();
+    if (!msg) return;
+    appendMsg('user', msg);
+    msgInput.value = '';
+    sendBtn.disabled = true;
+    const target = appendMsg('assistant', '…');
+
+    try {
+      const r = await fetch('/assistant/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg }),
+      });
+      if (r.status === 401) {
+        target.textContent = 'Authentication required. Please login with admin PIN.';
+        return;
+      }
+      if (!r.ok || !r.body) {
+        target.textContent = 'Error: HTTP ' + r.status;
+        return;
+      }
+      target.textContent = '';
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        target.textContent += decoder.decode(value, { stream: true });
+        chat.scrollTop = chat.scrollHeight;
+      }
+    } catch (err) {
+      target.textContent = 'Error: ' + err.message;
+    } finally {
+      sendBtn.disabled = false;
+      msgInput.focus();
+    }
+  });
+</script>
+{% endblock %}

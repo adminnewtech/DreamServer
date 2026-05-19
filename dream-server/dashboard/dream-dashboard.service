@@ -1,6 +1,6 @@
 [Unit]
-Description=Dream Dashboard - VPS service status board (port 9200)
-After=network.target docker.service
+Description=Dream Dashboard - integrated VPS control center (port 9200)
+After=network.target docker.service postgresql.service
 Wants=docker.service
 
 [Service]
@@ -9,18 +9,19 @@ User=root
 WorkingDirectory=/opt/dream-dashboard
 Environment=PYTHONUNBUFFERED=1
 Environment=DASHBOARD_SHOW_LOGINS=1
+Environment=DASHBOARD_DATA_DIR=/opt/dream-dashboard/data
+EnvironmentFile=-/opt/dream-dashboard/dashboard.env
 ExecStart=/opt/dream-dashboard/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9200 --proxy-headers
 Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
 
-# Security hardening
+# Security hardening - kept loose enough for systemctl/docker/journalctl access
 NoNewPrivileges=true
-ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/dream-dashboard
 PrivateTmp=true
+ReadWritePaths=/opt/dream-dashboard/data /opt/dream-dashboard
 
 [Install]
 WantedBy=multi-user.target

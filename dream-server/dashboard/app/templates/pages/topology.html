@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+{% block title %}Topology · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Topology</h2>
+      <p>Service dependency graph · click a node to see details</p>
+    </div>
+  </div>
+
+  <div class="topology-wrap">
+    <svg id="topology" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet"></svg>
+    <aside class="topo-side" id="topo-side">
+      <p class="topo-hint">Hover or click a node.</p>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+  const svg = d3.select('#topology');
+  const W = 1200, H = 800;
+  const side = document.getElementById('topo-side');
+
+  fetch('/api/topology').then(r => r.json()).then(data => {
+    const nodes = data.nodes;
+    const links = data.edges.map(e => ({ source: e.source, target: e.target }));
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(95).strength(0.6))
+      .force('charge', d3.forceManyBody().strength(-260))
+      .force('center', d3.forceCenter(W/2, H/2))
+      .force('collide', d3.forceCollide(38));
+
+    const linkSel = svg.append('g').selectAll('line').data(links).enter().append('line')
+      .attr('stroke', '#27272a').attr('stroke-opacity', 0.7).attr('stroke-width', 1);
+
+    const nodeSel = svg.append('g').selectAll('g').data(nodes).enter().append('g')
+      .attr('class', d => 'topo-node status-' + d.status)
+      .call(d3.drag()
+        .on('start', (e,d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag', (e,d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end', (e,d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
+      .on('click', (e,d) => showNode(d));
+
+    nodeSel.append('circle')
+      .attr('r', 14)
+      .attr('fill', d => d.status === 'up' ? '#10b981' : d.status === 'degraded' ? '#f59e0b' : '#ef4444')
+      .attr('stroke', '#18181b').attr('stroke-width', 2);
+
+    nodeSel.append('text')
+      .attr('x', 18).attr('y', 4)
+      .attr('fill', '#e4e4e7').attr('font-size', 11)
+      .text(d => d.id);
+
+    sim.on('tick', () => {
+      linkSel
+        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    function showNode(d) {
+      while (side.firstChild) side.removeChild(side.firstChild);
+      const h = document.createElement('h3');
+      h.textContent = d.id;
+      const kind = document.createElement('p'); kind.textContent = 'Kind: ' + d.kind;
+      const group = document.createElement('p'); group.textContent = 'Group: ' + d.group_label;
+      const stat = document.createElement('p'); stat.className = 'topo-status status-' + d.status; stat.textContent = 'Status: ' + d.status;
+      side.appendChild(h); side.appendChild(group); side.appendChild(kind); side.appendChild(stat);
+      // List deps
+      const deps = data.edges.filter(e => e.source === d.id);
+      if (deps.length) {
+        const dh = document.createElement('h4'); dh.textContent = 'Depends on:';
+        side.appendChild(dh);
+        const ul = document.createElement('ul');
+        deps.forEach(de => { const li = document.createElement('li'); li.textContent = de.target; ul.appendChild(li); });
+        side.appendChild(ul);
+      }
+      // Dependents
+      const used = data.edges.filter(e => e.target === d.id);
+      if (used.length) {
+        const dh = document.createElement('h4'); dh.textContent = 'Used by:';
+        side.appendChild(dh);
+        const ul = document.createElement('ul');
+        used.forEach(de => { const li = document.createElement('li'); li.textContent = de.source; ul.appendChild(li); });
+        side.appendChild(ul);
+      }
+    }
+  });
+</script>
+{% endblock %}

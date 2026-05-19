@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Databases · {{ brand_name }}{% endblock %}
+
+{% block main %}
+  <div class="page-head">
+    <div class="page-title">
+      <h2>Databases</h2>
+      <p>Postgres + Redis · live read-only snapshot</p>
+    </div>
+  </div>
+
+  <section class="db-grid">
+    {% for pg in data.postgres %}
+      <article class="db-card">
+        <header>
+          <span class="db-icon">🐘</span>
+          <h3>{{ pg.label }}</h3>
+          {% if pg.db_size %}<span class="db-size">{{ pg.db_size }}</span>{% endif %}
+        </header>
+        {% if pg.error %}
+          <div class="kpi-empty">⚠ {{ pg.error }}</div>
+        {% else %}
+          <div class="db-meta">
+            <span><label>Version</label> <code>{{ pg.version }}</code></span>
+            <span><label>Tables</label> <code>{{ pg.table_count }}</code></span>
+          </div>
+          <table class="db-tables">
+            <thead><tr><th>Table</th><th>Rows</th><th>Size</th></tr></thead>
+            <tbody>
+              {% for t in pg.top_tables %}
+                <tr><td>{{ t.name }}</td><td>{{ "{:,}".format(t.rows or 0) }}</td><td>{{ t.size }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </article>
+    {% endfor %}
+
+    <article class="db-card db-redis">
+      <header>
+        <span class="db-icon">🔴</span>
+        <h3>Redis</h3>
+        {% if data.redis.used_memory %}<span class="db-size">{{ data.redis.used_memory }}</span>{% endif %}
+      </header>
+      {% if data.redis.error %}
+        <div class="kpi-empty">⚠ {{ data.redis.error }}</div>
+      {% else %}
+        <div class="kpi-rows">
+          <div><label>Version</label><value>{{ data.redis.version }}</value></div>
+          <div><label>Uptime</label><value>{{ data.redis.uptime_h }}h</value></div>
+          <div><label>Keys</label><value>{{ "{:,}".format(data.redis['keys'] or 0) }}</value></div>
+          <div><label>Connected clients</label><value>{{ data.redis.connected_clients }}</value></div>
+          <div><label>Ops/sec</label><value>{{ data.redis.ops_per_sec }}</value></div>
+          <div><label>Total commands</label><value>{{ "{:,}".format(data.redis.total_commands or 0) }}</value></div>
+        </div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

@@ -1,38 +1,113 @@
-"""Dream Dashboard - VPS service status board.
+"""Dream Dashboard - integrated VPS control center.
 
-Routes:
-  GET /             -> full HTML dashboard
-  GET /api/health   -> JSON health for all services
-  GET /api/system   -> JSON host metrics
-  GET /partial/grid -> HTML fragment for HTMX auto-refresh
-  GET /logs/<unit>  -> last 50 journal lines for a systemd unit
-  GET /healthz      -> dashboard self-check
+Pages:
+  /            Services grid (default landing)
+  /overview    KPI overview from all integrated systems
+  /logs        Live log explorer with SSE streaming
+  /metrics     Time-series charts (host + per-service)
+  /databases   Postgres + Redis explorer
+  /topology    Service dependency graph (SVG)
+  /security    SSL certs + fail2ban + ports + processes
+  /assistant   AI chat (uses 9Router)
+  /auth/login  PIN login for write actions
+
+API:
+  GET  /api/health                  All service health
+  GET  /api/system                  Host metrics snapshot
+  GET  /api/metrics/host?hours=N    Host time-series
+  GET  /api/metrics/service/{name}  Service time-series
+  GET  /api/databases               PG + Redis info
+  GET  /api/security                Certs + f2b + ports + procs
+  GET  /api/integrations            Multica/Paperclip/Hermes/9R live KPIs
+  GET  /api/topology                Graph nodes + edges
+  GET  /logs/journal/{unit}         Static journal tail
+  GET  /logs/docker/{container}     Docker logs tail
+  GET  /logs/stream/{unit}          SSE stream (journalctl -f)
+  GET  /logs/search?q=...           Cross-unit grep
+  POST /actions/systemd/{unit}/{action}     restart|stop|start (PIN required)
+  POST /actions/docker/{container}/{action} restart|stop|start (PIN required)
+  POST /assistant/chat              Streaming AI chat (PIN required)
 """
 
 from __future__ import annotations
 
-import os
+import asyncio
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .health import _run_cmd, probe_all, system_summary
-from .services import GROUPS, LOGINS, all_services
+from .config import BRAND_NAME, HOST_LABEL
+from .routers import (
+    actions,
+    assistant,
+    auth,
+    databases,
+    logs,
+    metrics,
+    overview,
+    security,
+    services,
+    topology,
+)
+from . import sampler, storage
+
+log = logging.getLogger("dream-dashboard")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 BASE = Path(__file__).parent
-TPL = Jinja2Templates(directory=str(BASE / "templates"))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    storage.init_db()
+    log.info("storage initialized")
+    # Start background sampler
+    task = asyncio.create_task(sampler.run_forever())
+    log.info("metrics sampler started")
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
 
 app = FastAPI(
-    title="Dream Dashboard",
-    description="Live status of every service running on the VPS",
-    version="1.0.0",
+    title=BRAND_NAME,
+    description=f"Integrated VPS control center for {HOST_LABEL}",
+    version="2.0.0",
+    lifespan=lifespan,
 )
+
+# Templates with global helpers
+templates = Jinja2Templates(directory=str(BASE / "templates"))
+templates.env.globals["brand_name"] = BRAND_NAME
+templates.env.globals["host_label"] = HOST_LABEL
+app.state.templates = templates
+
+# Static files (under /static)
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
-SHOW_LOGINS = os.environ.get("DASHBOARD_SHOW_LOGINS", "1") == "1"
+# Routers
+app.include_router(services.router, tags=["services"])
+app.include_router(overview.router, tags=["overview"])
+app.include_router(logs.router, tags=["logs"])
+app.include_router(metrics.router, tags=["metrics"])
+app.include_router(databases.router, tags=["databases"])
+app.include_router(topology.router, tags=["topology"])
+app.include_router(security.router, tags=["security"])
+app.include_router(assistant.router, tags=["assistant"])
+app.include_router(auth.router, tags=["auth"])
+app.include_router(actions.router, tags=["actions"])
 
 
 @app.get("/healthz", response_class=PlainTextResponse)
@@ -40,77 +115,40 @@ async def healthz():
     return "ok"
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    services = await probe_all(all_services())
-    sys_info = await system_summary()
-    by_group: dict[str, list[dict]] = {}
-    for s in services:
-        by_group.setdefault(s["group"], []).append(s)
-    totals = {
-        "total": len(services),
-        "up": sum(1 for s in services if s["status"] == "up"),
-        "down": sum(1 for s in services if s["status"] in ("down", "missing")),
-        "degraded": sum(1 for s in services if s["status"] == "degraded"),
-    }
-    return TPL.TemplateResponse(
-        "index.html",
+@app.get("/manifest.webmanifest")
+async def pwa_manifest():
+    """PWA manifest for installable dashboard."""
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
         {
-            "request": request,
-            "groups": GROUPS,
-            "by_group": by_group,
-            "sys": sys_info,
-            "totals": totals,
-            "logins": LOGINS if SHOW_LOGINS else {},
-            "show_logins": SHOW_LOGINS,
-        },
+            "name": BRAND_NAME,
+            "short_name": "Dream",
+            "description": "VPS service status board",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0f0f13",
+            "theme_color": "#9d00ff",
+            "icons": [
+                {"src": "/static/dream.svg", "sizes": "any", "type": "image/svg+xml"},
+            ],
+        }
     )
 
 
-@app.get("/partial/grid", response_class=HTMLResponse)
-async def partial_grid(request: Request):
-    services = await probe_all(all_services())
-    sys_info = await system_summary()
-    by_group: dict[str, list[dict]] = {}
-    for s in services:
-        by_group.setdefault(s["group"], []).append(s)
-    totals = {
-        "total": len(services),
-        "up": sum(1 for s in services if s["status"] == "up"),
-        "down": sum(1 for s in services if s["status"] in ("down", "missing")),
-        "degraded": sum(1 for s in services if s["status"] == "degraded"),
-    }
-    return TPL.TemplateResponse(
-        "_grid.html",
-        {
-            "request": request,
-            "groups": GROUPS,
-            "by_group": by_group,
-            "sys": sys_info,
-            "totals": totals,
-        },
+@app.get("/sw.js", response_class=PlainTextResponse)
+async def service_worker():
+    """Minimal SW for PWA install + offline shell."""
+    return (
+        "const C='dream-v2';\n"
+        "self.addEventListener('install', e => self.skipWaiting());\n"
+        "self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));\n"
+        "self.addEventListener('fetch', e => {\n"
+        "  if (e.request.method !== 'GET') return;\n"
+        "  e.respondWith(\n"
+        "    fetch(e.request).catch(() =>\n"
+        "      caches.match(e.request).then(r => r || new Response('offline', {status: 503}))\n"
+        "    )\n"
+        "  );\n"
+        "});\n"
     )
-
-
-@app.get("/api/health")
-async def api_health():
-    services = await probe_all(all_services())
-    return JSONResponse(services)
-
-
-@app.get("/api/system")
-async def api_system():
-    return JSONResponse(await system_summary())
-
-
-@app.get("/logs/{unit}", response_class=PlainTextResponse)
-async def logs(unit: str):
-    valid = {s.get("unit") for grp in GROUPS.values() for s in grp["services"]}
-    valid.discard(None)
-    if unit not in valid:
-        raise HTTPException(status_code=404, detail="unknown unit")
-    rc, out = await _run_cmd(
-        ["journalctl", "-u", unit, "-n", "50", "--no-pager", "--output=short-iso"],
-        timeout=5.0,
-    )
-    return out or "(no log lines)"
