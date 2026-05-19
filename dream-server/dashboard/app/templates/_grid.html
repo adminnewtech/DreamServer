@@ -1,31 +1,39 @@
+<div id="all"></div>
 {% for gid, group in groups.items() %}
   {% set svcs = by_group.get(gid, []) %}
-  <section class="group" style="--accent: {{ group.color }}">
+  {% set up_n = svcs | selectattr('status', 'equalto', 'up') | list | length %}
+  {% set deg_n = svcs | selectattr('status', 'equalto', 'degraded') | list | length %}
+  {% set down_n = svcs | rejectattr('status', 'in', ['up','degraded']) | list | length %}
+  <section class="group" id="group-{{ gid }}">
     <header class="group-head">
-      <span class="g-icon">{{ group.icon }}</span>
-      <h2>{{ group.label }}</h2>
-      <span class="g-count">{{ svcs|length }}</span>
+      <span class="group-icon">{{ group.icon }}</span>
+      <h3>{{ group.label }}</h3>
+      <span class="g-counts">
+        {% if up_n %}<span class="g-up">{{ up_n }} up</span>{% endif %}
+        {% if deg_n %}<span class="g-degraded">{{ deg_n }} degraded</span>{% endif %}
+        {% if down_n %}<span class="g-down">{{ down_n }} down</span>{% endif %}
+      </span>
     </header>
     <div class="cards">
       {% for s in svcs %}
-        <div class="card status-{{ s.status }}">
+        <article class="card status-{{ s.status }}"
+                 data-search="{{ (s.name + ' ' + s.desc + ' ' + (s.unit or s.container or s.url or ''))|lower }}">
           <div class="card-top">
-            <span class="dot"></span>
-            <strong class="svc-name">{{ s.name }}</strong>
-            {% if s.port %}<span class="port">:{{ s.port }}</span>{% endif %}
+            <span class="svc-status-dot"></span>
+            <span class="svc-name">{{ s.name }}</span>
+            {% if s.port %}<span class="svc-port">:{{ s.port }}</span>{% endif %}
           </div>
-          <div class="card-desc">{{ s.desc }}</div>
-          <div class="card-meta">
-            <span class="kind">{{ s.kind }}</span>
-            <span class="detail" title="{{ s.detail }}">{{ s.detail|truncate(40) }}</span>
+          <div class="svc-desc">{{ s.desc }}</div>
+          <div class="svc-meta">
+            <span class="svc-kind">{{ s.kind }}</span>
+            <span class="svc-detail" title="{{ s.detail }}">{{ s.detail }}</span>
           </div>
-          <div class="card-actions">
+          <div class="svc-actions">
             {% if s.url %}<a href="{{ s.url }}" target="_blank" class="btn">Open ↗</a>{% endif %}
-            {% if s.unit %}<a href="/logs/{{ s.unit }}" target="_blank" class="btn btn-secondary">Logs</a>{% endif %}
+            {% if s.unit %}<a href="/logs/{{ s.unit }}" target="_blank" class="btn btn-ghost">Logs</a>{% endif %}
           </div>
-        </div>
+        </article>
       {% endfor %}
     </div>
   </section>
 {% endfor %}
-<!-- updated at {{ sys.uptime_h }}h uptime · totals: {{ totals.up }}/{{ totals.total }} -->

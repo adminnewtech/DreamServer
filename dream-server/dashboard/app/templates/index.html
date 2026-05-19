@@ -1,76 +1,145 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" data-theme="dream">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dream Dashboard — VPS Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dream Dashboard · VPS</title>
+  <meta name="theme-color" content="#0f0f13" />
+  <link rel="icon" type="image/svg+xml" href="/static/dream.svg" />
   <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12" crossorigin="anonymous"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">🌈</span>
-      <div>
-        <h1>Dream Dashboard</h1>
-        <p class="sub">VPS <code>83.171.249.32</code> · <span id="now"></span></p>
+  <div class="app">
+
+    <!-- ── Sidebar ─────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">DS</div>
+        <div class="brand-text">
+          <h1>Dream Dashboard</h1>
+          <p>83.171.249.32</p>
+        </div>
       </div>
-    </div>
-    <div class="sys-stats">
-      <div class="stat"><label>Uptime</label><value>{{ sys.uptime_h }}h</value></div>
-      <div class="stat"><label>Load</label><value>{{ sys.load }}</value></div>
-      <div class="stat"><label>Mem</label><value>{{ sys.mem_used_pct }}% of {{ sys.mem_total_gb }}G</value></div>
-      <div class="stat"><label>Disk /</label><value>{{ sys.disk_used_pct }}</value></div>
-    </div>
-  </header>
 
-  <section class="totals">
-    <div class="pill up">{{ totals.up }} up</div>
-    <div class="pill degraded">{{ totals.degraded }} degraded</div>
-    <div class="pill down">{{ totals.down }} down</div>
-    <div class="pill total">{{ totals.total }} total</div>
-    <div class="refresh-info">Auto-refresh every 10s</div>
-  </section>
+      <nav class="nav">
+        <div class="nav-label">Overview</div>
+        <a href="#all" class="nav-item active"><span class="ni-icon">📡</span> All Services <span class="ni-badge">{{ totals.total }}</span></a>
 
-  <main hx-get="/partial/grid" hx-trigger="every 10s" hx-target="#grid" hx-swap="innerHTML">
-    <div id="grid">
-      {% include "_grid.html" %}
-    </div>
-  </main>
+        <div class="nav-label">Groups</div>
+        {% for gid, group in groups.items() %}
+          {% set svcs = by_group.get(gid, []) %}
+          <a href="#group-{{ gid }}" class="nav-item">
+            <span class="ni-icon">{{ group.icon }}</span> {{ group.label }}
+            <span class="ni-badge">{{ svcs|length }}</span>
+          </a>
+        {% endfor %}
 
-  {% if show_logins and logins %}
-  <section class="logins">
-    <h2>🔐 Access Reference</h2>
-    <table>
-      <thead><tr><th>Service</th><th>URL / Host</th><th>User</th><th>Notes</th></tr></thead>
-      <tbody>
-      {% for name, info in logins.items() %}
-        <tr>
-          <td><strong>{{ name }}</strong></td>
-          <td>{% if info.url %}<a href="{{ info.url }}" target="_blank">{{ info.url }}</a>{% elif info.host %}<code>{{ info.host }}</code>{% endif %}</td>
-          <td>{% if info.user %}<code>{{ info.user }}</code>{% endif %}{% if info.db %} / db <code>{{ info.db }}</code>{% endif %}</td>
-          <td>{% if info.pass %}<code>{{ info.pass }}</code>{% elif info.notes %}{{ info.notes }}{% endif %}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </section>
-  {% endif %}
+        <div class="nav-label">Tools</div>
+        <a href="/api/health" class="nav-item" target="_blank"><span class="ni-icon">🔧</span> JSON API</a>
+        <a href="/api/system" class="nav-item" target="_blank"><span class="ni-icon">📊</span> System Metrics</a>
+        <a href="https://github.com/adminnewtech/DreamServer" class="nav-item" target="_blank"><span class="ni-icon">📦</span> Source</a>
+      </nav>
 
-  <footer>
-    <p>
-      Built from <a href="https://github.com/Light-Heart-Labs/DreamServer">DreamServer</a> · fork
-      <a href="https://github.com/adminnewtech/DreamServer">adminnewtech/DreamServer</a> ·
-      <a href="/api/health">JSON API</a>
-    </p>
-  </footer>
+      <div class="sidebar-foot">
+        <div class="foot-row"><span>Uptime</span><strong>{{ sys.uptime_h }}h</strong></div>
+        <div class="foot-row"><span>Load avg</span><strong>{{ sys.load }}</strong></div>
+        <div class="foot-row"><span>Memory</span><strong>{{ sys.mem_used_pct }}%</strong></div>
+        <div class="mem-bar"><div class="mem-bar-fill" style="width: {{ sys.mem_used_pct }}%"></div></div>
+        <div class="foot-row" style="margin-top:10px;"><span>Disk /</span><strong>{{ sys.disk_used_pct }}</strong></div>
+      </div>
+    </aside>
+
+    <!-- ── Main ────────────────────────────────────── -->
+    <main class="main">
+      <div class="page-head">
+        <div class="page-title">
+          <h2>Server Status</h2>
+          <p><span class="live-dot"></span> Live · auto-refresh every 10s · <span id="now"></span></p>
+        </div>
+        <div class="head-stats">
+          <div class="stat-pill up">    <label>Online</label>   <value>{{ totals.up }}</value></div>
+          <div class="stat-pill degraded"><label>Degraded</label><value>{{ totals.degraded }}</value></div>
+          <div class="stat-pill down">  <label>Down</label>     <value>{{ totals.down }}</value></div>
+          <div class="stat-pill">       <label>Total</label>    <value>{{ totals.total }}</value></div>
+        </div>
+      </div>
+
+      <div class="section-search">
+        <input type="search" id="filter" class="search-box" placeholder="Search services..." />
+        <div class="refresh-info">Live</div>
+      </div>
+
+      <div id="grid" hx-get="/partial/grid" hx-trigger="every 10s" hx-target="#grid" hx-swap="innerHTML">
+        {% include "_grid.html" %}
+      </div>
+
+      {% if show_logins and logins %}
+      <section class="logins-section">
+        <h2>🔐 Access Reference</h2>
+        <table>
+          <thead>
+            <tr><th>Service</th><th>URL / Host</th><th>User</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+          {% for name, info in logins.items() %}
+            <tr>
+              <td><strong>{{ name }}</strong></td>
+              <td>{% if info.url %}<a href="{{ info.url }}" target="_blank">{{ info.url }}</a>{% elif info.host %}<code>{{ info.host }}</code>{% endif %}</td>
+              <td>{% if info.user %}<code>{{ info.user }}</code>{% endif %}{% if info.db %} / <code>{{ info.db }}</code>{% endif %}</td>
+              <td>{% if info.pass %}<code>{{ info.pass }}</code>{% elif info.notes %}{{ info.notes }}{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      <footer>
+        Built from <a href="https://github.com/Light-Heart-Labs/DreamServer">DreamServer</a>
+        · fork <a href="https://github.com/adminnewtech/DreamServer">adminnewtech/DreamServer</a>
+        · {{ totals.up }}/{{ totals.total }} services healthy
+      </footer>
+    </main>
+  </div>
 
   <script>
+    // Clock
     function updateClock() {
-      document.getElementById('now').textContent = new Date().toLocaleString('en-GB', { hour12: false });
+      const el = document.getElementById('now');
+      if (el) el.textContent = new Date().toLocaleString('en-GB', { hour12: false });
     }
     updateClock();
     setInterval(updateClock, 1000);
+
+    // Client-side filter (no roundtrip)
+    const search = document.getElementById('filter');
+    function applyFilter() {
+      const q = (search.value || '').toLowerCase().trim();
+      document.querySelectorAll('.card').forEach(c => {
+        const txt = c.dataset.search || '';
+        c.dataset.hidden = q && !txt.includes(q) ? 'true' : 'false';
+      });
+      document.querySelectorAll('.group').forEach(g => {
+        const visible = g.querySelectorAll('.card:not([data-hidden="true"])').length;
+        g.dataset.empty = visible === 0 ? 'true' : 'false';
+      });
+    }
+    search.addEventListener('input', applyFilter);
+    // Re-apply filter after HTMX swap (the grid gets re-rendered every 10s)
+    document.body.addEventListener('htmx:afterSwap', applyFilter);
+
+    // Smooth-scroll for sidebar anchors + active state
+    document.querySelectorAll('.nav-item[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        a.classList.add('active');
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
   </script>
 </body>
 </html>
